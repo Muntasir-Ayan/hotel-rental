@@ -1,0 +1,23 @@
+docker-compose up -d
+
+docker exec -it postgres-container psql -U user hoteldb
+CREATE TABLE locations (
+    id SERIAL PRIMARY KEY,
+    city_name VARCHAR(255),
+    label VARCHAR(255),
+    name VARCHAR(255),
+    api_id VARCHAR(255) UNIQUE
+);
+
+-- Create property_table table
+CREATE TABLE property_table (
+    id SERIAL PRIMARY KEY,
+    location_id INT REFERENCES locations(id) ON DELETE CASCADE,
+    property_name VARCHAR(255),
+    property_api_id INT,
+    -- other fields...
+);
+
+SELECT * FROM locations;
+
+go run main.go
