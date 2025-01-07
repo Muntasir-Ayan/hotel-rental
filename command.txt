@@ -9,7 +9,18 @@ CREATE TABLE locations (
     api_id VARCHAR(255) UNIQUE
 );
 
--- Create property_table table
+
+
+CREATE TABLE property_table (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    location_id INTEGER REFERENCES locations(id),
+    property_api_id INTEGER UNIQUE
+);
+
+
+
+-- Create property_table table (optional)
 CREATE TABLE property_table (
     id SERIAL PRIMARY KEY,
     location_id INT REFERENCES locations(id) ON DELETE CASCADE,
