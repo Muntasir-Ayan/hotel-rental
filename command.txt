@@ -30,5 +30,15 @@ CREATE TABLE property_table (
 );
 
 SELECT * FROM locations;
+SELECT * FROM property_table;
 
 go run main.go
+
+
+
+--------------------------------------------
+CREATE TABLE locations (
+    dest_id TEXT PRIMARY KEY,
+    value TEXT,
+    dest_type TEXT
+);

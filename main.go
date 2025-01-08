@@ -2,42 +2,33 @@ package main
 
 import (
     "database/sql"
+    "encoding/json"
     "fmt"
     "log"
     "net/http"
     "io" // Import io package
 
     _ "github.com/lib/pq"
-    "github.com/tidwall/gjson"
 )
 
 const (
     dbUser     = "user"
     dbPassword = "password"
-    dbName     = "hoteldb"
+    dbName     = "hoteldb"  // Updated database name
+    apiURL     = "https://booking-com18.p.rapidapi.com/web/stays/auto-complete?query=Bangladesh"
     apiHost    = "booking-com18.p.rapidapi.com"
     apiKey     = "3308d1f999mshd8adb73826c4e7fp10471fjsn438c09b0aac5"
 )
 
 // Location represents the structure of a location
 type Location struct {
-    CityName string `json:"city_name"`
-    Label    string `json:"label"`
-    Name     string `json:"name"`
-    APIID    string `json:"id"`
-}
-
-// Property represents the structure of a property
-type Property struct {
-    ID            int    `json:"id"`
-    Name          string `json:"name"`
-    LocationID    int    `json:"location_id"`
-    PropertyAPIID int    `json:"property_api_id"`
+    DestID   string `json:"dest_id"`
+    Value    string `json:"value"`
+    DestType string `json:"dest_type"`
 }
 
 // Function to get data from the API
 func getAPIData() ([]Location, error) {
-    apiURL := "https://booking-com18.p.rapidapi.com/stays/auto-complete?query=New%20York"
     req, err := http.NewRequest("GET", apiURL, nil)
     if err != nil {
         return nil, err
@@ -59,58 +50,26 @@ func getAPIData() ([]Location, error) {
         return nil, err
     }
 
-    // Parse the JSON response using gjson
-    data := gjson.GetBytes(body, "data")
+    // Parse the JSON response
+    var response map[string]interface{}
+    if err := json.Unmarshal(body, &response); err != nil {
+        return nil, err
+    }
+
+    // Extract location data
+    data := response["data"].([]interface{})
     locations := []Location{}
-    for _, item := range data.Array() {
+    for _, item := range data {
+        itemMap := item.(map[string]interface{})
         location := Location{
-            CityName: item.Get("city_name").String(),
-            Label:    item.Get("label").String(),
-            Name:     item.Get("name").String(),
-            APIID:    item.Get("id").String(),
+            DestID:   itemMap["dest_id"].(string),
+            Value:    itemMap["value"].(string),
+            DestType: itemMap["dest_type"].(string),
         }
         locations = append(locations, location)
     }
 
     return locations, nil
-}
-
-// Function to get property data for a location from the API
-func getPropertyData(locationID string) ([]Property, error) {
-    apiURL := fmt.Sprintf("https://booking-com18.p.rapidapi.com/stays/search?locationId=%s&checkinDate=2025-01-07&checkoutDate=2025-01-18&units=metric&temperature=c", locationID)
-    req, err := http.NewRequest("GET", apiURL, nil)
-    if err != nil {
-        return nil, err
-    }
-
-    req.Header.Add("x-rapidapi-host", apiHost)
-    req.Header.Add("x-rapidapi-key", apiKey)
-
-    client := &http.Client{}
-    resp, err := client.Do(req)
-    if err != nil {
-        return nil, err
-    }
-    defer resp.Body.Close()
-
-    // Read the response body into a byte slice
-    body, err := io.ReadAll(resp.Body)
-    if err != nil {
-        return nil, err
-    }
-
-    // Parse the JSON response using gjson
-    data := gjson.GetBytes(body, "data")
-    properties := []Property{}
-    for _, item := range data.Array() {
-        property := Property{
-            Name:          item.Get("name").String(),
-            PropertyAPIID: int(item.Get("id").Int()), // Convert int64 to int
-        }
-        properties = append(properties, property)
-    }
-
-    return properties, nil
 }
 
 // Function to insert data into PostgreSQL
@@ -123,45 +82,14 @@ func insertLocationData(locations []Location) error {
     defer db.Close()
 
     for _, loc := range locations {
-        // Check if the location already exists
-        var locationID int
-        err := db.QueryRow(`
-            SELECT id FROM locations WHERE api_id = $1`, loc.APIID).Scan(&locationID)
-
-        if err == sql.ErrNoRows {
-            // Insert location data if not found
-            err = db.QueryRow(`
-                INSERT INTO locations (city_name, label, name, api_id) 
-                VALUES ($1, $2, $3, $4) 
-                RETURNING id`, 
-                loc.CityName, loc.Label, loc.Name, loc.APIID).Scan(&locationID)
-            if err != nil {
-                log.Printf("Error inserting location: %s", err)
-                continue
-            }
-        } else if err != nil {
-            log.Printf("Error checking location: %s", err)
-            continue
-        }
-
-        // Fetch property data for the inserted location using the api_id as location_id
-        properties, err := getPropertyData(loc.APIID)
+        _, err := db.Exec(`
+            INSERT INTO locations (dest_id, value, dest_type) 
+            VALUES ($1, $2, $3) 
+            ON CONFLICT (dest_id) DO NOTHING`,
+            loc.DestID, loc.Value, loc.DestType)
         if err != nil {
-            log.Printf("Error fetching properties for location %s: %s", loc.CityName, err)
+            log.Printf("Error inserting location: %s", err)
             continue
-        }
-
-        // Insert property data into property_table
-        for _, prop := range properties {
-            _, err := db.Exec(`
-                INSERT INTO property_table (name, location_id, property_api_id) 
-                VALUES ($1, $2, $3) 
-                ON CONFLICT (property_api_id) DO NOTHING`,
-                prop.Name, locationID, prop.PropertyAPIID)
-            if err != nil {
-                log.Printf("Error inserting property: %s", err)
-                continue
-            }
         }
     }
     return nil
