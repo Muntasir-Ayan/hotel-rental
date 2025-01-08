@@ -31,6 +31,8 @@ CREATE TABLE property_table (
 
 SELECT * FROM locations;
 SELECT * FROM associate_hotel;
+DROP TABLE associate_hotel;
+DROP TABLE locations;
 SELECT * FROM property_table;
 
 go run main.go
@@ -51,4 +53,18 @@ CREATE TABLE associate_hotel (
     dest_id TEXT,
     hotel_id_url TEXT,
     FOREIGN KEY (dest_id) REFERENCES locations(dest_id)
+);
+
+
+CREATE TABLE property_detail (
+    hotel_name VARCHAR(255),
+    type VARCHAR(100),
+    bedroom INT,
+    bathroom INT,
+    review TEXT,
+    rating FLOAT,
+    guest_count INT,
+    description TEXT,
+    image_url TEXT,
+    PRIMARY KEY (hotel_name)  -- Assuming hotel_name will be unique for the property
 );

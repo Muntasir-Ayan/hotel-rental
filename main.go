@@ -92,7 +92,7 @@ func insertLocationData(locations []Location) error {
             ON CONFLICT (dest_id) DO NOTHING`,
             loc.DestID, loc.Value, loc.DestType)
         if err != nil {
-            log.Printf("Error inserting location: %s", err)
+            log.Printf("Error inserting location %s: %s", loc.DestID, err)
             continue
         }
     }
@@ -238,6 +238,7 @@ func main() {
 
     // Fetch and insert hotel data for each location
     for _, loc := range locations {
+        fmt.Printf("Fetching hotels for destination ID: %s\n", loc.DestID)
         hotels, err := getHotelData(loc.DestID, loc.DestType)
         if err != nil {
             log.Printf("Error fetching hotel data for dest_id %s: %s", loc.DestID, err)
