@@ -42,3 +42,11 @@ CREATE TABLE locations (
     value TEXT,
     dest_type TEXT
 );
+
+
+CREATE TABLE associate_hotel (
+    hotel_id TEXT PRIMARY KEY,
+    hotel_name TEXT,
+    dest_id TEXT,
+    FOREIGN KEY (dest_id) REFERENCES locations(dest_id)
+);
