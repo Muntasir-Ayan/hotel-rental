@@ -30,6 +30,7 @@ CREATE TABLE property_table (
 );
 
 SELECT * FROM locations;
+SELECT * FROM associate_hotel;
 SELECT * FROM property_table;
 
 go run main.go
@@ -48,5 +49,6 @@ CREATE TABLE associate_hotel (
     hotel_id TEXT PRIMARY KEY,
     hotel_name TEXT,
     dest_id TEXT,
+    hotel_id_url TEXT,
     FOREIGN KEY (dest_id) REFERENCES locations(dest_id)
 );

@@ -28,9 +28,10 @@ type Location struct {
 }
 
 type Hotel struct {
-    HotelID   string `json:"hotel_id"`
-    HotelName string `json:"hotel_name"`
-    DestID    string `json:"dest_id"`
+    HotelID     string `json:"hotel_id"`
+    HotelName   string `json:"hotel_name"`
+    DestID      string `json:"dest_id"`
+    HotelIDUrl  string `json:"hotel_id_url"` // New field for hotel_id_url
 }
 
 // Function to get data from the API
@@ -185,10 +186,16 @@ func getHotelData(destID, destType string) ([]Hotel, error) {
             return nil, fmt.Errorf("unexpected type for hotelName: %T", v)
         }
 
+        hotelIDUrl, ok := itemMap["id"].(string) // Assuming 'id' contains the hotel ID URL
+        if !ok {
+            return nil, fmt.Errorf("unable to extract hotel_id_url")
+        }
+
         hotel := Hotel{
-            HotelID:   hotelIDStr,
-            HotelName: hotelNameStr,
-            DestID:    destID,
+            HotelID:     hotelIDStr,
+            HotelName:   hotelNameStr,
+            DestID:      destID,
+            HotelIDUrl:  hotelIDUrl, // Set the new field
         }
         hotels = append(hotels, hotel)
     }
@@ -207,10 +214,10 @@ func insertHotelData(hotels []Hotel) error {
 
     for _, hotel := range hotels {
         _, err := db.Exec(`
-            INSERT INTO associate_hotel (hotel_id, hotel_name, dest_id) 
-            VALUES ($1, $2, $3) 
+            INSERT INTO associate_hotel (hotel_id, hotel_name, dest_id, hotel_id_url) 
+            VALUES ($1, $2, $3, $4) 
             ON CONFLICT (hotel_id) DO NOTHING`,
-            hotel.HotelID, hotel.HotelName, hotel.DestID)
+            hotel.HotelID, hotel.HotelName, hotel.DestID, hotel.HotelIDUrl) // Insert hotel_id_url
         if err != nil {
             log.Printf("Error inserting hotel: %s", err)
             continue
