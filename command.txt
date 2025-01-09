@@ -73,3 +73,27 @@ CREATE TABLE property_detail (
     image_url TEXT,
     PRIMARY KEY (hotel_name)  -- Assuming hotel_name will be unique for the property
 );
+
+
+
+--------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS locations (
+    dest_id TEXT PRIMARY KEY,
+    value TEXT,
+    dest_type TEXT
+);
+
+CREATE TABLE IF NOT EXISTS associate_hotel (
+    hotel_id TEXT PRIMARY KEY,
+    hotel_name TEXT,
+    dest_id TEXT,
+    hotel_id_url TEXT,
+    rating NUMERIC,
+    review_count INTEGER,
+    price TEXT,
+    bedroom INTEGER,
+    bathroom INTEGER,
+    beds INTEGER,
+    location TEXT
+);
+--------------------------------------------------------------------------------------------
