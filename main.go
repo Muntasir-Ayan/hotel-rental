@@ -28,10 +28,13 @@ type Location struct {
 }
 
 type Hotel struct {
-    HotelID     string `json:"hotel_id"`
-    HotelName   string `json:"hotel_name"`
-    DestID      string `json:"dest_id"`
-    HotelIDUrl  string `json:"hotel_id_url"` // New field for hotel_id_url
+    HotelID     string  `json:"hotel_id"`
+    HotelName   string  `json:"hotel_name"`
+    DestID      string  `json:"dest_id"`
+    HotelIDUrl  string  `json:"hotel_id_url"`
+    Rating      float64 `json:"rating"`       // New field for rating
+    ReviewCount int     `json:"review_count"` // New field for review_count
+    Price       string `json:"price"`        // New field for price (changed to string)
 }
 
 // Function to get data from the API
@@ -145,7 +148,7 @@ func getHotelData(destID, destType string) ([]Hotel, error) {
         }
 
         basicPropertyData, ok := itemMap["basicPropertyData"].(map[string]interface{})
-        if !ok {
+        if (!ok) {
             continue
         }
 
@@ -191,11 +194,51 @@ func getHotelData(destID, destType string) ([]Hotel, error) {
             return nil, fmt.Errorf("unable to extract hotel_id_url")
         }
 
+        // Extract rating
+        reviews, ok := basicPropertyData["reviews"].(map[string]interface{})
+        if !ok {
+            continue
+        }
+
+        rating, ok := reviews["totalScore"].(float64)
+        if !ok {
+            rating = 0 // Default value if not found
+        }
+
+        reviewCount, ok := reviews["reviewsCount"].(float64)
+        if !ok {
+            reviewCount = 0 // Default value if not found
+        }
+
+        // Extract price
+        priceDisplayInfo, ok := itemMap["priceDisplayInfoIrene"].(map[string]interface{})
+        if !ok {
+            continue
+        }
+
+        displayPrice, ok := priceDisplayInfo["displayPrice"].(map[string]interface{})
+        if !ok {
+            continue
+        }
+
+        amountPerStay, ok := displayPrice["amountPerStay"].(map[string]interface{})
+        if !ok {
+            continue
+        }
+
+        price, ok := amountPerStay["amount"].(string)
+        if !ok {
+            price = "0" // Default value if not found
+        }
+
         hotel := Hotel{
             HotelID:     hotelIDStr,
             HotelName:   hotelNameStr,
             DestID:      destID,
-            HotelIDUrl:  hotelIDUrl, // Set the new field
+            HotelIDUrl:  hotelIDUrl,
+            Rating:      rating,
+            ReviewCount: int(reviewCount),
+            Price:       price, // Use the price as a string
         }
         hotels = append(hotels, hotel)
     }
@@ -214,10 +257,10 @@ func insertHotelData(hotels []Hotel) error {
 
     for _, hotel := range hotels {
         _, err := db.Exec(`
-            INSERT INTO associate_hotel (hotel_id, hotel_name, dest_id, hotel_id_url) 
-            VALUES ($1, $2, $3, $4) 
+            INSERT INTO associate_hotel (hotel_id, hotel_name, dest_id, hotel_id_url, rating, review_count, price) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7) 
             ON CONFLICT (hotel_id) DO NOTHING`,
-            hotel.HotelID, hotel.HotelName, hotel.DestID, hotel.HotelIDUrl) // Insert hotel_id_url
+            hotel.HotelID, hotel.HotelName, hotel.DestID, hotel.HotelIDUrl, hotel.Rating, hotel.ReviewCount, hotel.Price)
         if err != nil {
             log.Printf("Error inserting hotel: %s", err)
             continue

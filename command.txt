@@ -56,6 +56,11 @@ CREATE TABLE associate_hotel (
 );
 
 
+ALTER TABLE associate_hotel
+ADD COLUMN rating NUMERIC,
+ADD COLUMN review_count INTEGER,
+ADD COLUMN price TEXT;
+
 CREATE TABLE property_detail (
     hotel_name VARCHAR(255),
     type VARCHAR(100),
