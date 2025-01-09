@@ -6,10 +6,12 @@ import (
     "fmt"
     "log"
     "net/http"
+    // "strings"
     "strconv"
     "io"
 
     _ "github.com/lib/pq"
+    "github.com/lib/pq"
 )
 
 const (
@@ -32,9 +34,17 @@ type Hotel struct {
     HotelName   string  `json:"hotel_name"`
     DestID      string  `json:"dest_id"`
     HotelIDUrl  string  `json:"hotel_id_url"`
-    Rating      float64 `json:"rating"`       // New field for rating
-    ReviewCount int     `json:"review_count"` // New field for review_count
-    Price       string `json:"price"`        // New field for price (changed to string)
+    Rating      float64 `json:"rating"`
+    ReviewCount int     `json:"review_count"`
+    Price       string  `json:"price"`
+}
+
+type PropertyDetail struct {
+    HotelID     string   `json:"hotel_id"`
+    Description string   `json:"description"`
+    ImageURL    []string `json:"image_url"`
+    Type        string   `json:"type"`
+    Amenities   []string `json:"amenities"`
 }
 
 // Function to get data from the API
@@ -148,7 +158,7 @@ func getHotelData(destID, destType string) ([]Hotel, error) {
         }
 
         basicPropertyData, ok := itemMap["basicPropertyData"].(map[string]interface{})
-        if (!ok) {
+        if !ok {
             continue
         }
 
@@ -269,6 +279,184 @@ func insertHotelData(hotels []Hotel) error {
     return nil
 }
 
+// Function to get property description from the API
+func getPropertyDescription(hotelID string) (string, error) {
+    url := fmt.Sprintf("https://booking-com18.p.rapidapi.com/stays/get-description?hotelId=%s", hotelID)
+    req, err := http.NewRequest("GET", url, nil)
+    if err != nil {
+        return "", err
+    }
+
+    req.Header.Add("x-rapidapi-host", apiHost)
+    req.Header.Add("x-rapidapi-key", apiKey)
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        return "", err
+    }
+    defer resp.Body.Close()
+
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return "", err
+    }
+
+    var response map[string]interface{}
+    if err := json.Unmarshal(body, &response); err != nil {
+        return "", err
+    }
+
+    data, ok := response["data"].([]interface{})
+    if !ok {
+        return "", fmt.Errorf("unexpected type for data field")
+    }
+
+    if len(data) == 0 {
+        return "", fmt.Errorf("no description found for hotel ID: %s", hotelID)
+    }
+
+    itemMap, ok := data[0].(map[string]interface{})
+    if !ok {
+        return "", fmt.Errorf("unexpected type for item in data array")
+    }
+
+    description, ok := itemMap["description"].(string)
+    if !ok {
+        return "", fmt.Errorf("description not found for hotel ID: %s", hotelID)
+    }
+
+    return description, nil
+}
+
+// Function to get detailed property information from the API
+func getPropertyDetails(hotelID string) (PropertyDetail, error) {
+    url := fmt.Sprintf("https://booking-com18.p.rapidapi.com/stays/detail?hotelId=%s&checkinDate=2025-01-11&checkoutDate=2025-01-23&units=metric", hotelID)
+    req, err := http.NewRequest("GET", url, nil)
+    if err != nil {
+        return PropertyDetail{}, err
+    }
+
+    req.Header.Add("x-rapidapi-host", apiHost)
+    req.Header.Add("x-rapidapi-key", apiKey)
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        return PropertyDetail{}, err
+    }
+    defer resp.Body.Close()
+
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return PropertyDetail{}, err
+    }
+
+    var response map[string]interface{}
+    if err := json.Unmarshal(body, &response); err != nil {
+        return PropertyDetail{}, err
+    }
+
+    data, ok := response["data"].(map[string]interface{})
+    if !ok {
+        return PropertyDetail{}, fmt.Errorf("unexpected type for data field")
+    }
+
+    // Extract images
+    rooms, ok := data["rooms"].(map[string]interface{})
+    if !ok {
+        return PropertyDetail{}, fmt.Errorf("unexpected type for rooms field")
+    }
+
+    images := []string{}
+    for _, room := range rooms {
+        roomDetails, ok := room.(map[string]interface{})
+        if !ok {
+            continue
+        }
+
+        photos, ok := roomDetails["photos"].([]interface{})
+        if !ok {
+            continue
+        }
+
+        for _, photo := range photos {
+            photoDetails, ok := photo.(map[string]interface{})
+            if !ok {
+                continue
+            }
+
+            urlOriginal, ok := photoDetails["url_original"].(string)
+            if ok {
+                images = append(images, urlOriginal)
+            }
+        }
+    }
+
+    // Extract type
+    accommodationTypeName, ok := data["accommodation_type_name"].(string)
+    if !ok {
+        accommodationTypeName = ""
+    }
+
+    // Extract amenities
+    facilitiesBlock, ok := data["facilities_block"].(map[string]interface{})
+    if !ok {
+        return PropertyDetail{}, fmt.Errorf("unexpected type for facilities_block field")
+    }
+
+    facilities, ok := facilitiesBlock["facilities"].([]interface{})
+    if !ok {
+        return PropertyDetail{}, fmt.Errorf("unexpected type for facilities field")
+    }
+
+    amenities := []string{}
+    for i, facility := range facilities {
+        if i >= 3 {
+            break
+        }
+        facilityDetails, ok := facility.(map[string]interface{})
+        if !ok {
+            continue
+        }
+
+        name, ok := facilityDetails["name"].(string)
+        if ok {
+            amenities = append(amenities, name)
+        }
+    }
+
+    return PropertyDetail{
+        HotelID:   hotelID,
+        ImageURL:  images,
+        Type:      accommodationTypeName,
+        Amenities: amenities,
+    }, nil
+}
+
+// Function to insert property detail data into PostgreSQL
+func insertPropertyDetailData(propertyDetails []PropertyDetail) error {
+    connStr := fmt.Sprintf("postgres://%s:%s@localhost:5432/%s?sslmode=disable", dbUser, dbPassword, dbName)
+    db, err := sql.Open("postgres", connStr)
+    if err != nil {
+        return err
+    }
+    defer db.Close()
+
+    for _, detail := range propertyDetails {
+        _, err := db.Exec(`
+            INSERT INTO property_detail (hotel_id, description, image_url, type, amenities) 
+            VALUES ($1, $2, $3, $4, $5) 
+            ON CONFLICT (hotel_id) DO NOTHING`,
+            detail.HotelID, detail.Description, pq.Array(detail.ImageURL), detail.Type, pq.Array(detail.Amenities))
+        if err != nil {
+            log.Printf("Error inserting property detail for hotel_id %s: %s", detail.HotelID, err)
+            continue
+        }
+    }
+    return nil
+}
+
 func main() {
     locations, err := getAPIData()
     if err != nil {
@@ -290,6 +478,31 @@ func main() {
 
         if err := insertHotelData(hotels); err != nil {
             log.Printf("Error inserting hotel data for dest_id %s: %s", loc.DestID, err)
+            continue
+        }
+
+        // Fetch and insert property details for each hotel
+        propertyDetails := []PropertyDetail{}
+        for _, hotel := range hotels {
+            fmt.Printf("Fetching property details for hotel ID: %s\n", hotel.HotelID)
+            description, err := getPropertyDescription(hotel.HotelID)
+            if err != nil {
+                log.Printf("Error fetching property description for hotel_id %s: %s", hotel.HotelID, err)
+                continue
+            }
+
+            detail, err := getPropertyDetails(hotel.HotelID)
+            if err != nil {
+                log.Printf("Error fetching property details for hotel_id %s: %s", hotel.HotelID, err)
+                continue
+            }
+
+            detail.Description = description
+            propertyDetails = append(propertyDetails, detail)
+        }
+
+        if err := insertPropertyDetailData(propertyDetails); err != nil {
+            log.Printf("Error inserting property detail data: %s", err)
             continue
         }
     }

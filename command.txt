@@ -31,7 +31,9 @@ CREATE TABLE property_table (
 
 SELECT * FROM locations;
 SELECT * FROM associate_hotel;
+SELECT * FROM property_detail;
 DROP TABLE associate_hotel;
+DROP TABLE property_detail;
 DROP TABLE locations;
 SELECT * FROM property_table;
 
@@ -96,4 +98,13 @@ CREATE TABLE IF NOT EXISTS associate_hotel (
     beds INTEGER,
     location TEXT
 );
+
+CREATE TABLE property_detail (
+    hotel_id VARCHAR(255) PRIMARY KEY,
+    description TEXT
+);
+ALTER TABLE property_detail
+ADD COLUMN image_url TEXT[],
+ADD COLUMN type VARCHAR(255),
+ADD COLUMN amenities TEXT[];
 --------------------------------------------------------------------------------------------
