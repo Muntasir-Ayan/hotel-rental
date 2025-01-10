@@ -16,8 +16,8 @@ This project is a Go application that fetches hotel data from a third-party API 
 
 1. Clone the repository:
     ```sh
-    git clone https://github.com/your-username/hotel-data-fetcher.git
-    cd hotel-data-fetcher
+    git clone https://github.com/Muntasir-Ayan/hotel-rental.git
+    cd hotel-rental
     ```
 
 2. Install the required dependencies:
@@ -41,25 +41,15 @@ This project is a Go application that fetches hotel data from a third-party API 
     )
     ```
 
-2. Run the application:
+2. Run the Docker:
     ```sh
-    go run main.go
+       docker-compose up
     ```
-
-## Configuration
-
-The configuration constants in the `main.go` file need to be updated with your PostgreSQL database credentials and RapidAPI key. These constants include:
-
-- `dbUser`: Your PostgreSQL username.
-- `dbPassword`: Your PostgreSQL password.
-- `dbName`: Your PostgreSQL database name.
-- `apiURL`: The URL for the API endpoint to fetch location data.
-- `apiHost`: The `x-rapidapi-host` header value.
-- `apiKey`: Your RapidAPI key.
-
-## Database Schema
-
-Create the following tables in your PostgreSQL database:
+3. Create the Database:
+    ```sh
+    docker exec -it postgres-container psql -U user hoteldb
+    ```
+## Database Schema (Create the following table)
 
 ```sql
 CREATE TABLE locations (
@@ -85,3 +75,22 @@ CREATE TABLE property_detail (
     type TEXT,
     amenities TEXT[]
 );
+```
+## Run 
+```bash
+   go run main.go
+````
+
+## Configuration
+
+The configuration constants in the `main.go` file need to be updated with your PostgreSQL database credentials and RapidAPI key. These constants include:
+
+- `dbUser`: Your PostgreSQL username.
+- `dbPassword`: Your PostgreSQL password.
+- `dbName`: Your PostgreSQL database name.
+- `apiURL`: The URL for the API endpoint to fetch location data.
+- `apiHost`: The `x-rapidapi-host` header value.
+- `apiKey`: Your RapidAPI key.
+
+
+
