@@ -6,7 +6,6 @@ import (
     "fmt"
     "log"
     "net/http"
-    // "strings"
     "strconv"
     "io"
 
@@ -20,7 +19,7 @@ const (
     dbName     = "hoteldb"
     apiURL     = "https://booking-com18.p.rapidapi.com/web/stays/auto-complete?query=New%20York"
     apiHost    = "booking-com18.p.rapidapi.com"
-    apiKey     = "3308d1f999mshd8adb73826c4e7fp10471fjsn438c09b0aac5"
+    apiKey     = "4fe276fac5msh41086da0676b605p11b40cjsnff019d70b9cd"
 )
 
 type Location struct {
@@ -69,15 +68,27 @@ func getAPIData() ([]Location, error) {
         return nil, err
     }
 
+    // Log the response body for debugging
+    log.Printf("API Response: %s", body)
+
     var response map[string]interface{}
     if err := json.Unmarshal(body, &response); err != nil {
         return nil, err
     }
 
-    data := response["data"].([]interface{})
+    // Check if the 'data' field exists and is of the expected type
+    data, ok := response["data"].([]interface{})
+    if !ok {
+        return nil, fmt.Errorf("unexpected type for data field or data field is nil")
+    }
+
     locations := []Location{}
     for _, item := range data {
-        itemMap := item.(map[string]interface{})
+        itemMap, ok := item.(map[string]interface{})
+        if !ok {
+            continue
+        }
+
         location := Location{
             DestID:   itemMap["dest_id"].(string),
             Value:    itemMap["value"].(string),
@@ -134,6 +145,9 @@ func getHotelData(destID, destType string) ([]Hotel, error) {
     if err != nil {
         return nil, err
     }
+
+    // Log the response body for debugging
+    log.Printf("API Response: %s", body)
 
     var response map[string]interface{}
     if err := json.Unmarshal(body, &response); err != nil {
@@ -302,6 +316,9 @@ func getPropertyDescription(hotelID string) (string, error) {
         return "", err
     }
 
+    // Log the response body for debugging
+    log.Printf("API Response: %s", body)
+
     var response map[string]interface{}
     if err := json.Unmarshal(body, &response); err != nil {
         return "", err
@@ -351,6 +368,9 @@ func getPropertyDetails(hotelID string) (PropertyDetail, error) {
     if err != nil {
         return PropertyDetail{}, err
     }
+
+    // Log the response body for debugging
+    log.Printf("API Response: %s", body)
 
     var response map[string]interface{}
     if err := json.Unmarshal(body, &response); err != nil {
@@ -460,11 +480,11 @@ func insertPropertyDetailData(propertyDetails []PropertyDetail) error {
 func main() {
     locations, err := getAPIData()
     if err != nil {
-        log.Fatal(err)
+        log.Fatalf("Error fetching locations: %s", err)
     }
 
     if err := insertLocationData(locations); err != nil {
-        log.Fatal(err)
+        log.Fatalf("Error inserting locations: %s", err)
     }
 
     // Fetch and insert hotel data for each location
