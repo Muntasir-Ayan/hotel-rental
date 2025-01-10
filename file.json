@@ -1,81 +1,27 @@
-{
-  "data": {
-    "rooms": {
-      "229113706": {
-     
-        "private_bathroom_count": 0,
-        "photos": [
-          {
-            "last_update_date": "2023-08-10 20:51:42",
-            "url_square60": "https://cf.bstatic.com/xdata/images/hotel/square60/484656799.jpg?k=fb28b0aaf9ef7596f27d552aecd00785494bb492a8f6ceb7276c67508b52db6f&o=",
-            "url_max300": "https://cf.bstatic.com/xdata/images/hotel/max300/484656799.jpg?k=fb28b0aaf9ef7596f27d552aecd00785494bb492a8f6ceb7276c67508b52db6f&o=",
-            "ratio": 1.51718688265508,
-            "url_original": "https://cf.bstatic.com/xdata/images/hotel/max500/484656799.jpg?k=fb28b0aaf9ef7596f27d552aecd00785494bb492a8f6ceb7276c67508b52db6f&o=",
-            "photo_id": 484656799,
-            "new_order": 0,
-            "url_640x200": "https://cf.bstatic.com/xdata/images/hotel/640x200/484656799.jpg?k=fb28b0aaf9ef7596f27d552aecd00785494bb492a8f6ceb7276c67508b52db6f&o="
-          },
-          {
-            "url_square60": "https://cf.bstatic.com/xdata/images/hotel/square60/484656800.jpg?k=242b08c557e44891efd5e35ae703db7e96886bae07347ade289b3fc31dbff5de&o=",
-            "ratio": 1.43944506936633,
-            "url_max300": "https://cf.bstatic.com/xdata/images/hotel/max300/484656800.jpg?k=242b08c557e44891efd5e35ae703db7e96886bae07347ade289b3fc31dbff5de&o=",
-            "last_update_date": "2023-08-10 20:51:42",
-            "url_original": "https://cf.bstatic.com/xdata/images/hotel/max500/484656800.jpg?k=242b08c557e44891efd5e35ae703db7e96886bae07347ade289b3fc31dbff5de&o=",
-            "new_order": 2,
-            "url_640x200": "https://cf.bstatic.com/xdata/images/hotel/640x200/484656800.jpg?k=242b08c557e44891efd5e35ae703db7e96886bae07347ade289b3fc31dbff5de&o=",
-            "photo_id": 484656800
-          },
-          {
-            "url_square60": "https://cf.bstatic.com/xdata/images/hotel/square60/484656804.jpg?k=18ba82bd7bdd2d50710765d8a29a5b0f7f83e1e6a9954fe4dbabd346eb58d23a&o=",
-            "url_max300": "https://cf.bstatic.com/xdata/images/hotel/max300/484656804.jpg?k=18ba82bd7bdd2d50710765d8a29a5b0f7f83e1e6a9954fe4dbabd346eb58d23a&o=",
-            "ratio": 1.39636363636364,
-            "last_update_date": "2023-08-10 20:51:43",
-            "new_order": 1,
-            "url_640x200": "https://cf.bstatic.com/xdata/images/hotel/640x200/484656804.jpg?k=18ba82bd7bdd2d50710765d8a29a5b0f7f83e1e6a9954fe4dbabd346eb58d23a&o=",
-            "photo_id": 484656804,
-            "url_original": "https://cf.bstatic.com/xdata/images/hotel/max500/484656804.jpg?k=18ba82bd7bdd2d50710765d8a29a5b0f7f83e1e6a9954fe4dbabd346eb58d23a&o="
-          },
-          {
-            "url_square60": "https://cf.bstatic.com/xdata/images/hotel/square60/484656795.jpg?k=4a32a09283f538601da0a7ed5166adfd9fe5241b4b0a9fa2e38db1ae9652a5af&o=",
-            "ratio": 1.39905247813411,
-            "url_max300": "https://cf.bstatic.com/xdata/images/hotel/max300/484656795.jpg?k=4a32a09283f538601da0a7ed5166adfd9fe5241b4b0a9fa2e38db1ae9652a5af&o=",
-            "last_update_date": "2023-08-10 20:51:42",
-            "url_original": "https://cf.bstatic.com/xdata/images/hotel/max500/484656795.jpg?k=4a32a09283f538601da0a7ed5166adfd9fe5241b4b0a9fa2e38db1ae9652a5af&o=",
-            "new_order": 3,
-            "url_640x200": "https://cf.bstatic.com/xdata/images/hotel/640x200/484656795.jpg?k=4a32a09283f538601da0a7ed5166adfd9fe5241b4b0a9fa2e38db1ae9652a5af&o=",
-            "photo_id": 484656795
-          }
-        ],
-      }
+/v1/property/list
 
+[
+  {
+    value,
+    hotel_name,
+    hotel_id,
+    rating,
+    review_count,
+    amenities,
+    type,
+    image_url[0]
   },
 
-  "accommodation_type_name":"Hotels"
-  "facilities_block": {
-    "title":"Facilities",
-    "facilities":[
-      {
-        "icon":"clean",
-        "name":"Room service"
-      },
-      {
-        "icon":"food_and_drink",
-        "name":"Restaurant"
-      },
-      {
-        "icon":"disabled",
-        "name":"Facilities for disabled guests"
-      },
-      {
-        "icon":"fitness",
-        "name":"Fitness center"
-      },
-      {
-        "icon":"nosmoking",
-        "name":"Non-smoking rooms"
-      }
-    ]
-  }
+]
 
-}
-}
+
+/v1/property/details
+
+[
+  {
+    hotel_id,
+    hotel_name,
+    description,
+    image_url
+  }
+]
