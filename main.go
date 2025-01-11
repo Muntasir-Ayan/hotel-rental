@@ -39,7 +39,12 @@ type Hotel struct {
     Bedrooms    int     `json:"bedrooms"`
     Bathroom    int     `json:"bathroom"`
     Location    string  `json:"location"`
+    Amenities1  string  `json:"amenities1"`
+    Amenities2  string  `json:"amenities2"`
+    Amenities3  string  `json:"amenities3"`
+    GuestCount  int     `json:"guest_count"`
 }
+
 
 type PropertyDetail struct {
     HotelID     string   `json:"hotel_id"`
@@ -308,6 +313,124 @@ func getHotelData(destID, destType string) ([]Hotel, error) {
     return hotels, nil
 }
 
+func getAmenities(hotelID string) (string, string, string, error) {
+    url := fmt.Sprintf("https://booking-com18.p.rapidapi.com/stays/all-facilities?hotelId=%s&checkinDate=2025-01-12&checkoutDate=2025-01-23", hotelID)
+    req, err := http.NewRequest("GET", url, nil)
+    if err != nil {
+        return "", "", "", err
+    }
+
+    req.Header.Add("x-rapidapi-host", apiHost)
+    req.Header.Add("x-rapidapi-key", apiKey)
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        return "", "", "", err
+    }
+    defer resp.Body.Close()
+
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return "", "", "", err
+    }
+
+    // Log the response body for debugging
+    log.Printf("API Response: %s", body)
+
+    var response map[string]interface{}
+    if err := json.Unmarshal(body, &response); err != nil {
+        return "", "", "", err
+    }
+
+    facilities, ok := response["facilities"].([]interface{})
+    if !ok || len(facilities) < 3 {
+        return "", "", "", fmt.Errorf("unexpected type for facilities field or not enough facilities")
+    }
+
+    getAmenityTitle := func(facility interface{}) string {
+        facilityMap, ok := facility.(map[string]interface{})
+        if !ok {
+            return ""
+        }
+        instances, ok := facilityMap["instances"].([]interface{})
+        if !ok || len(instances) == 0 {
+            return ""
+        }
+        instanceMap, ok := instances[0].(map[string]interface{})
+        if !ok {
+            return ""
+        }
+        title, ok := instanceMap["title"].(string)
+        if !ok {
+            return ""
+        }
+        return title
+    }
+
+    amenities1 := getAmenityTitle(facilities[0])
+    amenities2 := getAmenityTitle(facilities[1])
+    amenities3 := getAmenityTitle(facilities[2])
+
+    return amenities1, amenities2, amenities3, nil
+}
+
+
+
+func getGuestCount(hotelID string) (int, error) {
+    url := fmt.Sprintf("https://booking-com18.p.rapidapi.com/stays/detail?hotelId=%s&checkinDate=2025-01-12&checkoutDate=2025-01-23&units=metric", hotelID)
+    req, err := http.NewRequest("GET", url, nil)
+    if err != nil {
+        return 0, err
+    }
+
+    req.Header.Add("x-rapidapi-host", apiHost)
+    req.Header.Add("x-rapidapi-key", apiKey)
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        return 0, err
+    }
+    defer resp.Body.Close()
+
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return 0, err
+    }
+
+    // Log the response body for debugging
+    log.Printf("API Response: %s", body)
+
+    var response map[string]interface{}
+    if err := json.Unmarshal(body, &response); err != nil {
+        return 0, err
+    }
+
+    roomRecommendation, ok := response["room_recommendation"].([]interface{})
+    if !ok || len(roomRecommendation) == 0 {
+        return 0, fmt.Errorf("unexpected type for room_recommendation field or no room recommendations")
+    }
+
+    recommendationMap, ok := roomRecommendation[0].(map[string]interface{})
+    if !ok {
+        return 0, fmt.Errorf("unexpected type for room_recommendation item")
+    }
+
+    adults, ok := recommendationMap["adults"].(float64)
+    if !ok {
+        adults = 0
+    }
+
+    children, ok := recommendationMap["children"].(float64)
+    if !ok {
+        children = 0
+    }
+
+    return int(adults + children), nil
+}
+
+
 // Function to insert hotel data into PostgreSQL
 func insertHotelData(hotels []Hotel) error {
     connStr := fmt.Sprintf("postgres://%s:%s@localhost:5432/%s?sslmode=disable", dbUser, dbPassword, dbName)
@@ -319,11 +442,11 @@ func insertHotelData(hotels []Hotel) error {
 
     for _, hotel := range hotels {
         _, err := db.Exec(
-            `INSERT INTO associate_hotel (hotel_id, hotel_name, dest_id, hotel_id_url, rating, review_count, price, bedrooms, bathroom, location) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+            `INSERT INTO associate_hotel (hotel_id, hotel_name, dest_id, hotel_id_url, rating, review_count, price, bedrooms, bathroom, location, amenities1, amenities2, amenities3, guest_count) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
             ON CONFLICT (hotel_id) DO NOTHING`,
             hotel.HotelID, hotel.HotelName, hotel.DestID, hotel.HotelIDUrl, hotel.Rating, hotel.ReviewCount, hotel.Price,
-            hotel.Bedrooms, hotel.Bathroom, hotel.Location)
+            hotel.Bedrooms, hotel.Bathroom, hotel.Location, hotel.Amenities1, hotel.Amenities2, hotel.Amenities3, hotel.GuestCount)
         if err != nil {
             log.Printf("Error inserting hotel: %s", err)
             continue
@@ -331,6 +454,7 @@ func insertHotelData(hotels []Hotel) error {
     }
     return nil
 }
+
 
 // Function to get property description from the API
 func getPropertyDescription(hotelID string) (string, error) {
@@ -533,6 +657,26 @@ func main() {
         if err != nil {
             log.Printf("Error fetching hotel data for dest_id %s: %s", loc.DestID, err)
             continue
+        }
+
+        for i, hotel := range hotels {
+            fmt.Printf("Fetching amenities for hotel ID: %s\n", hotel.HotelID)
+            amenities1, amenities2, amenities3, err := getAmenities(hotel.HotelID)
+            if err != nil {
+                log.Printf("Error fetching amenities for hotel_id %s: %s", hotel.HotelID, err)
+                continue
+            }
+            hotels[i].Amenities1 = amenities1
+            hotels[i].Amenities2 = amenities2
+            hotels[i].Amenities3 = amenities3
+
+            fmt.Printf("Fetching guest count for hotel ID: %s\n", hotel.HotelID)
+            guestCount, err := getGuestCount(hotel.HotelID)
+            if err != nil {
+                log.Printf("Error fetching guest count for hotel_id %s: %s", hotel.HotelID, err)
+                continue
+            }
+            hotels[i].GuestCount = guestCount
         }
 
         if err := insertHotelData(hotels); err != nil {
