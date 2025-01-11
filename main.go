@@ -19,7 +19,7 @@ const (
     dbName     = "hoteldb"
     apiURL     = "https://booking-com18.p.rapidapi.com/web/stays/auto-complete?query=New%20York"
     apiHost    = "booking-com18.p.rapidapi.com"
-    apiKey     = "4fe276fac5msh41086da0676b605p11b40cjsnff019d70b9cd"
+    apiKey     = "3dab48e211msh05065cf89ab516dp101291jsnc31c829f1dc9"
 )
 
 type Location struct {
@@ -36,6 +36,9 @@ type Hotel struct {
     Rating      float64 `json:"rating"`
     ReviewCount int     `json:"review_count"`
     Price       string  `json:"price"`
+    Bedrooms    int     `json:"bedrooms"`
+    Bathroom    int     `json:"bathroom"`
+    Location    string  `json:"location"`
 }
 
 type PropertyDetail struct {
@@ -255,6 +258,38 @@ func getHotelData(destID, destType string) ([]Hotel, error) {
             price = "0" // Default value if not found
         }
 
+        // Extract bedrooms
+        matchingUnitConfigurations, ok := itemMap["matchingUnitConfigurations"].(map[string]interface{})
+        if !ok {
+            continue
+        }
+
+        commonConfiguration, ok := matchingUnitConfigurations["commonConfiguration"].(map[string]interface{})
+        if !ok {
+            continue
+        }
+
+        nbAllBeds, ok := commonConfiguration["nbAllBeds"].(float64)
+        if !ok {
+            nbAllBeds = 0 // Default value if not found
+        }
+
+        nbBathrooms, ok := commonConfiguration["nbBathrooms"].(float64)
+        if !ok {
+            nbBathrooms = 0 // Default value if not found
+        }
+
+        // Extract location
+        location, ok := itemMap["location"].(map[string]interface{})
+        if !ok {
+            continue
+        }
+
+        displayLocation, ok := location["displayLocation"].(string)
+        if !ok {
+            displayLocation = "" // Default value if not found
+        }
+
         hotel := Hotel{
             HotelID:     hotelIDStr,
             HotelName:   hotelNameStr,
@@ -262,7 +297,10 @@ func getHotelData(destID, destType string) ([]Hotel, error) {
             HotelIDUrl:  hotelIDUrl,
             Rating:      rating,
             ReviewCount: int(reviewCount),
-            Price:       price, // Use the price as a string
+            Price:       price,
+            Bedrooms:    int(nbAllBeds), // Convert float64 to int
+            Bathroom:    int(nbBathrooms), // Convert float64 to int
+            Location:    displayLocation,
         }
         hotels = append(hotels, hotel)
     }
@@ -280,11 +318,12 @@ func insertHotelData(hotels []Hotel) error {
     defer db.Close()
 
     for _, hotel := range hotels {
-        _, err := db.Exec(`
-            INSERT INTO associate_hotel (hotel_id, hotel_name, dest_id, hotel_id_url, rating, review_count, price) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7) 
+        _, err := db.Exec(
+            `INSERT INTO associate_hotel (hotel_id, hotel_name, dest_id, hotel_id_url, rating, review_count, price, bedrooms, bathroom, location) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
             ON CONFLICT (hotel_id) DO NOTHING`,
-            hotel.HotelID, hotel.HotelName, hotel.DestID, hotel.HotelIDUrl, hotel.Rating, hotel.ReviewCount, hotel.Price)
+            hotel.HotelID, hotel.HotelName, hotel.DestID, hotel.HotelIDUrl, hotel.Rating, hotel.ReviewCount, hotel.Price,
+            hotel.Bedrooms, hotel.Bathroom, hotel.Location)
         if err != nil {
             log.Printf("Error inserting hotel: %s", err)
             continue
