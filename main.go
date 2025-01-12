@@ -19,7 +19,7 @@ const (
     dbName     = "hoteldb"
     apiURL     = "https://booking-com18.p.rapidapi.com/web/stays/auto-complete?query=New%20York"
     apiHost    = "booking-com18.p.rapidapi.com"
-    apiKey     = "3dab48e211msh05065cf89ab516dp101291jsnc31c829f1dc9"
+    apiKey     = "4a4923f24fmsh3366e45c3f69964p1a984ajsnbb7b98d10f0e"
 )
 
 type Location struct {

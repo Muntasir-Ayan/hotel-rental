@@ -59,21 +59,30 @@ CREATE TABLE locations (
 );
 
 CREATE TABLE associate_hotel (
-    hotel_id TEXT PRIMARY KEY,
-    hotel_name TEXT,
-    dest_id TEXT,
-    hotel_id_url TEXT,
-    rating FLOAT,
-    review_count INT,
-    price TEXT
+    hotel_id VARCHAR(255) PRIMARY KEY,
+    hotel_name VARCHAR(255) NOT NULL,
+    dest_id VARCHAR(255) NOT NULL,
+    hotel_id_url VARCHAR(255) NOT NULL,
+    rating FLOAT NOT NULL,
+    review_count INT NOT NULL,
+    price VARCHAR(255) NOT NULL,
+    bedrooms INT NOT NULL,
+    bathroom INT NOT NULL,
+    location VARCHAR(255) NOT NULL,
+    amenities1 VARCHAR(255),
+    amenities2 VARCHAR(255),
+    amenities3 VARCHAR(255),
+    guest_count INT NOT NULL,
+    FOREIGN KEY (dest_id) REFERENCES locations(dest_id)
 );
 
 CREATE TABLE property_detail (
-    hotel_id TEXT PRIMARY KEY,
-    description TEXT,
+    hotel_id VARCHAR(255) PRIMARY KEY,
+    description TEXT NOT NULL,
     image_url TEXT[],
-    type TEXT,
-    amenities TEXT[]
+    type VARCHAR(255) NOT NULL,
+    amenities TEXT[],
+    FOREIGN KEY (hotel_id) REFERENCES associate_hotel(hotel_id)
 );
 ```
 ## Run 
